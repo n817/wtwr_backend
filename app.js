@@ -2,7 +2,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const mainRouter = require("./routes/index");
 
-
 const { PORT = 3001 } = process.env;
 
 const app = express();
@@ -15,6 +14,12 @@ mongoose
   .catch(console.error);
 
 app.use(express.json());
+
+// temporary authorization solution
+app.use((req, res, next) => {
+  req.user = { _id: "6952795aa3c69774103b30bb" };
+  next();
+});
 
 app.use("/", mainRouter);
 
