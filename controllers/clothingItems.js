@@ -10,52 +10,64 @@ const {
 const getItems = (req, res) => {
   ClothingItem.find({})
     .then((items) => res.send(items))
-    .catch((e) => {
+    .catch((err) => {
+      console.error(err);
       return res
         .status(INTERNAL_SERVER_ERROR_CODE)
-        .send({ message: "Error from getItems", e });
+        .send({ message: "Error from getItems", err });
     });
 };
 
 // POST /items (create clothing item)
 const createItem = (req, res) => {
   const owner = req.user._id;
-  console.log(req);
-  console.log(req.body);
-
   const { name, weather, imageUrl } = req.body;
 
   ClothingItem.create({ name, weather, imageUrl, owner })
     .then((item) => {
-      console.log(item);
       res.send({ data: item });
     })
-    .catch((e) => {
-      console.error(e);
-      if (e.name === "ValidationError") {
-        return res.status(BAD_REQUEST_ERROR_CODE).send({ message: e.message });
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        return res
+          .status(BAD_REQUEST_ERROR_CODE)
+          .send({ message: err.message });
       }
       return res
         .status(INTERNAL_SERVER_ERROR_CODE)
-        .send({ message: e.message });
+        .send({ message: err.message });
     });
 };
 
 // DELETE /items/:id (delete clothing item by ID)
 const deleteItem = (req, res) => {
   const { id } = req.params;
-  console.log(id);
   ClothingItem.findById(id)
     .orFail(() => {
       const error = new Error("Card ID not found");
       error.statusCode = NOT_FOUND_ERROR_CODE;
       throw error;
     })
-    .then((item) => ClothingItem.deleteOne(item).then(() => res.send(item)))
-    .catch((e) => {
+    .then((item) => {
+      if (!item.owner.equals(req.user._id)) {
+        res
+          .status(FORBIDDEN_ERROR_CODE)
+          .send({ message: "You cannot delete someone else's card" });
+      } else {
+        ClothingItem.deleteOne(item)
+        .then(() => res.send(item))
+        .catch((err) => {
+            console.error(err);
+            return res
+              .status(INTERNAL_SERVER_ERROR_CODE)
+              .send({ message: "An error has occured on the server" });
+          });
+      }
+    })
+    .catch((err) => {
       res
         .status(INTERNAL_SERVER_ERROR_CODE)
-        .send({ message: "Error from deleteItem", e });
+        .send({ message: "Error from deleteItem", err });
     });
 };
 
@@ -77,15 +89,15 @@ const toggleLike = (req, res, method) => {
     .then((item) => {
       res.send(item);
     })
-    .catch((e) => {
-      if (e.name === "CastError") {
+    .catch((err) => {
+      if (err.name === "CastError") {
         res.status(BAD_REQUEST_ERROR_CODE).send({ message: "Invalid item ID" });
-      } else if (e.statusCode === NOT_FOUND_ERROR_CODE) {
-        res.status(NOT_FOUND_ERROR_CODE).send({ message: e.message });
+      } else if (err.statusCode === NOT_FOUND_ERROR_CODE) {
+        res.status(NOT_FOUND_ERROR_CODE).send({ message: err.message });
       } else {
         res
           .status(INTERNAL_SERVER_ERROR_CODE)
-          .send({ message: "Error from toggleLike", e });
+          .send({ message: "Error from toggleLike", err });
       }
     });
 };
