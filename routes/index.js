@@ -14,7 +14,7 @@ router.use(auth); // athorization middleware (all routes below will require auth
 router.use("/users", userRouter);
 
 router.use((req, res) => {
-  res.status(500).send({ message: "Router not found" });
+  res.status(404).send({ message: "Router not found" });
 });
 
 module.exports = router;

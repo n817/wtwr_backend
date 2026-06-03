@@ -4,6 +4,7 @@ const {
   BAD_REQUEST_ERROR_CODE,
   NOT_FOUND_ERROR_CODE,
   INTERNAL_SERVER_ERROR_CODE,
+  FORBIDDEN_ERROR_CODE,
 } = require("../utils/errors");
 
 // GET /items (get clothing item)
@@ -55,8 +56,8 @@ const deleteItem = (req, res) => {
           .send({ message: "You cannot delete someone else's card" });
       } else {
         ClothingItem.deleteOne(item)
-        .then(() => res.send(item))
-        .catch((err) => {
+          .then(() => res.send(item))
+          .catch((err) => {
             console.error(err);
             return res
               .status(INTERNAL_SERVER_ERROR_CODE)
@@ -65,9 +66,19 @@ const deleteItem = (req, res) => {
       }
     })
     .catch((err) => {
-      res
-        .status(INTERNAL_SERVER_ERROR_CODE)
-        .send({ message: "Error from deleteItem", err });
+      if (err.name === "CastError") {
+        return res
+          .status(BAD_REQUEST_ERROR_CODE)
+          .send({ message: "Invalid item ID" });
+      }
+
+      if (err.statusCode === NOT_FOUND_ERROR_CODE) {
+        return res.status(NOT_FOUND_ERROR_CODE).send({ message: err.message });
+      }
+
+      return res.status(INTERNAL_SERVER_ERROR_CODE).send({
+        message: "An error has occurred on the server",
+      });
     });
 };
 
@@ -79,7 +90,7 @@ const toggleLike = (req, res, method) => {
   ClothingItem.findByIdAndUpdate(
     id,
     { [method]: { likes: req.user._id } },
-    { new: true },
+    { new: true }
   )
     .orFail(() => {
       const error = new Error("Item ID not found");

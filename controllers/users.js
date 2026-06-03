@@ -15,9 +15,14 @@ const {
 // Authenticate user by email/password (POST /signin)
 const signIn = (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(BAD_REQUEST_ERROR_CODE).send({
+      message: "Email and password are required",
+    });
+  }
   return User.findUserByCredentials(email, password)
     .then((userData) => {
-      // authentication successfull, userData variable contains user
+      // authentication successful, userData variable contains user
       // create and return user
       const token = jwt.sign({ _id: userData._id }, JWT_SECRET, {
         expiresIn: "7d",
@@ -44,7 +49,7 @@ const signUp = (req, res) => {
     .then((user) => {
       if (user) {
         const error = new Error(
-          "The user with the provided email already exists",
+          "The user with the provided email already exists"
         );
         error.statusCode = CONFLICT_ERROR_CODE;
         throw error;
@@ -65,10 +70,14 @@ const signUp = (req, res) => {
         return res
           .status(BAD_REQUEST_ERROR_CODE)
           .send({ message: err.message });
+        // 409 - conflict error
+      } else if (err.statusCode === CONFLICT_ERROR_CODE) {
+        res.status(CONFLICT_ERROR_CODE).send({ message: err.message });
+      } else {
+        return res
+          .status(INTERNAL_SERVER_ERROR_CODE)
+          .send({ message: err.message });
       }
-      return res
-        .status(INTERNAL_SERVER_ERROR_CODE)
-        .send({ message: err.message });
     });
 };
 
@@ -100,7 +109,7 @@ const patchMe = (req, res) => {
   User.findByIdAndUpdate(
     req.user._id,
     { name, avatar },
-    { new: true, runValidators: true }, // "then" will receive the updated data + data validation
+    { new: true, runValidators: true } // "then" will receive the updated data + data validation
   )
     .orFail(() => {
       const error = new Error("User ID not found");
@@ -111,7 +120,7 @@ const patchMe = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        res.status(BAD_REQUEST_ERROR_CODE).send({ message: "Invalid user ID" });
+        res.status(BAD_REQUEST_ERROR_CODE).send({ message: err.message });
       } else if (err.statusCode === NOT_FOUND_ERROR_CODE) {
         res.status(NOT_FOUND_ERROR_CODE).send({ message: err.message });
       } else {

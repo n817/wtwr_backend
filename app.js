@@ -17,7 +17,7 @@ mongoose
 
 app.use(express.json());
 
-app.use(cors); // enable the cors browser security mechanism
+app.use(cors()); // enable the cors browser security mechanism
 
 app.use("/", mainRouter);
 

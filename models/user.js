@@ -48,12 +48,12 @@ userSchema.statics.findUserByCredentials = function (email, password) {
     .then((user) => {
       if (!user) {
         // The throw instruction throws an exception and code processing proceeds to the next catch block.
-        throw new Error("incorrect email and/or password");
+        throw new Error("Incorrect email or password");
       }
       // The user is found —> compare password hashes
       return bcrypt.compare(password, user.password).then((matched) => {
         if (!matched) {
-          throw new Error("incorrect email and/or password");
+          throw new Error("Incorrect email or password");
         }
         // The hashes match -> returning the user.
         return user;
